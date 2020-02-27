@@ -1,0 +1,11 @@
+{
+  "UART_PORT": "COM7",
+  "UART_BAUDRATE": 115200,
+  "UART_BYTESIZE": 8,
+  "UART_PARITY": "N",
+  "UART_STOPBITES": 2,
+
+  "MOTOR_ADDR": 1,
+  "SIGIN_ADDR": 2,
+  "SIGIN_REG": "0x31"
+}

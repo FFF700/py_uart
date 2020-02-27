@@ -1,15 +1,15 @@
 import serial
 import time
 import modbus_crc16
+from servo_config import MOTOR_ADDR, SIGIN_ADDR, SIGIN_REG, UART_PORT, UART_BAUDRATE, UART_BYTESIZE, UART_PARITY, \
+    UART_STOPBITES
 
 try:
-    uart = serial.Serial(port='COM7', baudrate=115200, bytesize=8, parity="N", stopbits=2)
+    uart = serial.Serial(port=UART_PORT, baudrate=UART_BAUDRATE, bytesize=UART_BYTESIZE, parity=UART_PARITY,
+                         stopbits=UART_STOPBITES)
     print(uart.portstr)
 except WindowsError:
     print("The port has been opened by another program, please check and try again.")
-
-
-tx_msg = [0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def uart_send(data):
@@ -22,6 +22,7 @@ def uart_send(data):
 
 
 def modbus_build_frame(addr, cmd, reg, data):
+    tx_msg = bytearray(8)
     tx_msg[0] = addr
     tx_msg[1] = cmd
     tx_msg[2] = reg // 256
@@ -37,16 +38,30 @@ def modbus_build_frame(addr, cmd, reg, data):
 
 
 def set_pulses(p_num):
-    p_num_h: bytes = p_num // 10000
-    p_num_l: bytes = p_num % 10000
-    modbus_build_frame(1, 6, 0x78, p_num_h)
-    modbus_build_frame(1, 6, 0x79, p_num_l)
+    p_num_h = p_num // 10000
+    p_num_l = p_num % 10000
+    if p_num >= 0:
+        pass
+    else:
+        p_num_h = 65536 + p_num_h + 1
+        if p_num_l == 0:
+            pass
+        else:
+            p_num_l = 65536 - 10000 + p_num_l
+    print(f"{p_num_h},{p_num_l}")
+    modbus_build_frame(MOTOR_ADDR, 6, 0x78, p_num_h)
+    time.sleep(0.1)
+    modbus_build_frame(MOTOR_ADDR, 6, 0x79, p_num_l)
+
+
+def sigin_init():
+    modbus_build_frame(SIGIN_ADDR, 6, int(SIGIN_REG, 16), 0x0000)
 
 
 def motor_run_once():
-    modbus_build_frame(2, 6, 0x31, 0x0000)
+    modbus_build_frame(SIGIN_ADDR, 6, int(SIGIN_REG, 16), 0xFF00)
     time.sleep(0.1)
-    modbus_build_frame(2, 6, 0x31, 0xFF00)
+    modbus_build_frame(SIGIN_ADDR, 6, int(SIGIN_REG, 16), 0x0000)
 
 
 def cmd_input():
@@ -54,11 +69,14 @@ def cmd_input():
     cmd = str.split(' ')
     print(cmd[0])
     if cmd[0] == 'set':
-        if cmd[1].isdigit():
-            set_pulses(int(cmd[1]))
-            print("set succeed.")
+        if cmd[1][1:].isdigit():
+            if int(cmd[1]) > 99999999 or int(cmd[1]) < -99999999:
+                print("Out of range! Number of pulse must in range -99999999~99999999.")
+            else:
+                set_pulses(int(cmd[1]))
+                print("set succeed.")
         else:
-            pass
+            print("Type error!Please input a number after \"set\".")
 
     elif cmd[0] == 'motor':
         motor_run_once()
@@ -66,6 +84,7 @@ def cmd_input():
 
 
 if __name__ == "__main__":
+    sigin_init()
     while True:
         cmd_input()
         if uart.in_waiting:
