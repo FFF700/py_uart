@@ -34,7 +34,7 @@ def modbus_build_frame(addr, cmd, reg, data):
     tx_msg[7] = check // 256
 
     uart.write(tx_msg)
-    print(tx_msg)
+    print(f"TX: {tx_msg}")
 
 
 def set_pulses(p_num):
@@ -76,18 +76,20 @@ def cmd_input():
     cmd = str.split(' ')
     print(cmd[0])
     if cmd[0] == 'set':
-        if cmd[1][1:].isdigit():
+        try:
             if int(cmd[1]) > 99999999 or int(cmd[1]) < -99999999:
                 print("Out of range! Number of pulse must in range -99999999~99999999.")
             else:
                 set_pulses(int(cmd[1]))
                 print("set succeed.")
-        else:
-            print("Type error!Please input a number after \"set\".")
+        except ValueError:
+            print("Type error! Please input a number after \"set\".")
 
     elif cmd[0] == 'motor':
         motor_run_once()
         print('motor move')
+    else:
+        pass
 
 
 if __name__ == "__main__":
@@ -96,4 +98,4 @@ if __name__ == "__main__":
         cmd_input()
         if uart.in_waiting:
             rx_msg = uart.read(uart.in_waiting)
-            print(rx_msg)
+            print(f"RX: {rx_msg}")
