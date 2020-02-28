@@ -38,16 +38,23 @@ def modbus_build_frame(addr, cmd, reg, data):
 
 
 def set_pulses(p_num):
+    is_positive = True
+    if p_num < 0:
+        is_positive = False
+        p_num = 0 - p_num
     p_num_h = p_num // 10000
     p_num_l = p_num % 10000
-    if p_num >= 0:
+    if is_positive:
         pass
     else:
-        p_num_h = 65536 + p_num_h + 1
+        if p_num_h == 0:
+            pass
+        else:
+            p_num_h = 65536 - p_num_h
         if p_num_l == 0:
             pass
         else:
-            p_num_l = 65536 - 10000 + p_num_l
+            p_num_l = 65536 - p_num_l
     print(f"{p_num_h},{p_num_l}")
     modbus_build_frame(MOTOR_ADDR, 6, 0x78, p_num_h)
     time.sleep(0.1)
